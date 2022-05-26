@@ -24,12 +24,25 @@ async function run() {
     const orderCollection = client
       .db("tools_manufacturer")
       .collection("orders");
+    const userCollection = client.db("tools_manufacturer").collection("users");
 
     app.get("/tool", async (req, res) => {
       const query = {};
       const cursor = toolCollection.find(query);
       const tools = await cursor.toArray();
       res.send(tools);
+    });
+
+    app.put("/user/:email", async (req, res) => {
+      const email = req.params.email;
+      const user = req.body;
+      const filter = { email: email };
+      const options = { upsert: true };
+      const updateDoc = {
+        $set: user,
+      };
+      const result = await userCollection.updateOne(filter, updateDoc, options);
+      res.send(result);
     });
 
     //order purchase
@@ -40,6 +53,14 @@ async function run() {
       res.send(result);
     });
 
+    //my order
+
+    app.get("/order", async (req, res) => {
+      const email = req.query.email;
+      const query = { email: email };
+      const orders = await orderCollection.find(query).toArray();
+      res.send(orders);
+    });
     //single
 
     app.get("/tool/:id", async (req, res) => {
