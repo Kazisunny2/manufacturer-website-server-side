@@ -50,6 +50,11 @@ async function run() {
       res.send(tools);
     });
 
+    app.get("/user", async (req, res) => {
+      const users = await userCollection.find().toArray();
+      res.send(users);
+    });
+
     //jwt token
 
     app.put("/user/:email", async (req, res) => {
