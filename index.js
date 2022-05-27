@@ -42,12 +42,21 @@ async function run() {
       .db("tools_manufacturer")
       .collection("orders");
     const userCollection = client.db("tools_manufacturer").collection("users");
+    const reviewCollection = client
+      .db("tools_manufacturer")
+      .collection("reviews");
 
     app.get("/tool", async (req, res) => {
       const query = {};
       const cursor = toolCollection.find(query);
       const tools = await cursor.toArray();
       res.send(tools);
+    });
+    app.get("/review", async (req, res) => {
+      const query = {};
+      const cursor = reviewCollection.find(query);
+      const reviews = await cursor.toArray();
+      res.send(reviews);
     });
 
     app.get("/user", verifyJWT, async (req, res) => {
@@ -106,6 +115,29 @@ async function run() {
     app.post("/order", async (req, res) => {
       const order = req.body;
       const result = await orderCollection.insertOne(order);
+      res.send(result);
+    });
+
+    //add new product
+    app.post("/tool", async (req, res) => {
+      const newInventory = req.body;
+      const result = await toolCollection.insertOne(newInventory);
+      res.send(result);
+    });
+
+    //add new product
+
+    app.post("/review", async (req, res) => {
+      const newReview = req.body;
+      const result = await reviewCollection.insertOne(newReview);
+      res.send(result);
+    });
+
+    //DELETE
+    app.delete("/order/:email", async (req, res) => {
+      const email = req.params.email;
+      const query = { email: email };
+      const result = await orderCollection.deleteOne(query);
       res.send(result);
     });
 
