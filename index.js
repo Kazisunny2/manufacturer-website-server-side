@@ -4,6 +4,8 @@ const jwt = require("jsonwebtoken");
 require("dotenv").config();
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 
+const stripe = require("stripe")(process.env.STRIP_SECRET_KEY);
+
 const app = express();
 const port = process.env.PORT || 5000;
 
@@ -45,6 +47,9 @@ async function run() {
     const reviewCollection = client
       .db("tools_manufacturer")
       .collection("reviews");
+    const paymentCollection = client
+      .db("tools_manufacturer")
+      .collection("payments");
 
     app.get("/tool", async (req, res) => {
       const query = {};
@@ -118,6 +123,20 @@ async function run() {
       res.send(result);
     });
 
+    //payment
+
+    app.post("/create-payment-intent", verifyJWT, async (req, res) => {
+      const service = req.body;
+      const price = service.Price;
+      const amount = price * 100;
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: amount,
+        currency: "usd",
+        payment_method_types: ["card"],
+      });
+      res.send({ clientSecret: paymentIntent.client_secret });
+    });
+
     //add new product
     app.post("/tool", async (req, res) => {
       const newInventory = req.body;
@@ -131,6 +150,34 @@ async function run() {
       const newReview = req.body;
       const result = await reviewCollection.insertOne(newReview);
       res.send(result);
+    });
+
+    //Payment
+
+    app.get("/order/:id", verifyJWT, async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: ObjectId(id) };
+      const order = await orderCollection.findOne(query);
+      res.send(order);
+    });
+
+    app.patch("/order/:id", verifyJWT, async (req, res) => {
+      const id = req.params.id;
+      const payment = req.body;
+      const filter = { _id: ObjectId(id) };
+      const updatedDoc = {
+        $set: {
+          paid: true,
+          transactionId: payment.transactionId,
+        },
+      };
+
+      const result = await paymentCollection.insertOne(payment);
+      const updatedBooking = await orderCollection.updateOne(
+        filter,
+        updatedDoc
+      );
+      res.send(updatedBooking);
     });
 
     //DELETE
